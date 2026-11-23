@@ -1,3 +1,4 @@
+
 import os
 import json
 import logging
@@ -13,15 +14,17 @@ logging.basicConfig(level=logging.INFO)
 TOKEN = os.getenv("BOT_TOKEN")
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 ARCHIVE_CHANNEL_ID = os.getenv("ARCHIVE_CHANNEL_ID")
+PUBLIC_CHANNEL = os.getenv("PUBLIC_CHANNEL", "@illusionlab1")
 
 VIDEO, TITLE, DESCRIPTION, TAGS, GENRE, BPM, KEY, VERSES, CHORUSES, COVER = range(10)
+POST_COVER, POST_DESCRIPTION, POST_LINK = range(10, 13)
 
 
 def load_beats():
     try:
         with open("beats.json", "r", encoding="utf-8") as f:
             return json.load(f)
-    except:
+    except Exception:
         return []
 
 
@@ -38,15 +41,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_owner(update):
         await update.message.reply_text("این ربات خصوصی است.")
         return
+
     await update.message.reply_text(
-        "سلام! برای ثبت بیت دستور /add را بزن.\n"
-        "برای دریافت شناسه تلگرام /id را بزن."
+        "سلام!\n"
+        "/add - ثبت بیت در آرشیو\n"
+        "/post - ساخت پست کانال\n"
+        "/id - شناسه تلگرام\n"
+        "/cancel - لغو عملیات"
     )
 
 
 async def get_id(update, context):
     await update.message.reply_text(str(update.effective_user.id))
 
+
+# ---------- ثبت بیت در آرشیو (قابلیت قبلی) ----------
 
 async def add(update, context):
     if not is_owner(update):
@@ -189,6 +198,9 @@ async def approve(update, context):
     query = update.callback_query
     await query.answer()
 
+    if not is_owner(update):
+        return
+
     if query.data == "reject":
         context.user_data.clear()
         await query.edit_message_text("ثبت لغو شد.")
@@ -228,10 +240,7 @@ async def approve(update, context):
             )
 
         beats = load_beats()
-        record = {
-            k: v for k, v in d.items()
-            if k != "file_id"
-        }
+        record = {k: v for k, v in d.items() if k != "file_id"}
         beats.append(record)
         save_beats(beats)
 
@@ -243,6 +252,99 @@ async def approve(update, context):
 
     context.user_data.clear()
 
+
+# ---------- ساخت پست کانال عمومی ----------
+
+async def post_start(update, context):
+    if not is_owner(update):
+        return ConversationHandler.END
+
+    context.user_data["channel_post"] = {}
+    await update.message.reply_text("اول عکس کاور پست رو بفرست.")
+    return POST_COVER
+
+
+async def post_cover(update, context):
+    if not update.message.photo:
+        await update.message.reply_text("لطفاً عکس کاور بفرست.")
+        return POST_COVER
+
+    context.user_data["channel_post"]["cover"] = update.message.photo[-1].file_id
+    await update.message.reply_text("حالا توضیحات پست رو بفرست.")
+    return POST_DESCRIPTION
+
+
+async def post_description(update, context):
+    context.user_data["channel_post"]["description"] = update.message.text
+    await update.message.reply_text("حالا لینک ویدیوی یوتیوب رو جداگانه بفرست.")
+    return POST_LINK
+
+
+async def post_link(update, context):
+    link = update.message.text.strip()
+
+    if not link.startswith(("https://", "http://")):
+        await update.message.reply_text("لطفاً لینک معتبر رو با https:// بفرست.")
+        return POST_LINK
+
+    context.user_data["channel_post"]["link"] = link
+    d = context.user_data["channel_post"]
+
+    caption = f"{d['description']}\n\n🎬 YouTube:\n{d['link']}"
+
+    keyboard = [[
+        InlineKeyboardButton("انتشار در کانال", callback_data="publish_post"),
+        InlineKeyboardButton("لغو", callback_data="cancel_post")
+    ]]
+
+    await update.message.reply_photo(
+        photo=d["cover"],
+        caption=caption,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return ConversationHandler.END
+
+
+async def publish_post(update, context):
+    query = update.callback_query
+    await query.answer()
+
+    if not is_owner(update):
+        return
+
+    if query.data == "cancel_post":
+        context.user_data.pop("channel_post", None)
+        await query.edit_message_caption(caption="انتشار پست لغو شد.")
+        return
+
+    d = context.user_data.get("channel_post")
+
+    if not d:
+        await query.edit_message_caption(caption="اطلاعات پست پیدا نشد. دوباره /post را بزن.")
+        return
+
+    try:
+        caption = f"{d['description']}\n\n🎬 YouTube:\n{d['link']}"
+
+        await context.bot.send_photo(
+            chat_id=PUBLIC_CHANNEL,
+            photo=d["cover"],
+            caption=caption
+        )
+
+        await query.edit_message_caption(caption="پست با موفقیت در کانال منتشر شد! ✅")
+
+    except Exception:
+        logging.exception("Public channel post error")
+        await query.edit_message_caption(
+            caption="انتشار ناموفق بود. دسترسی ربات به کانال را بررسی کن."
+        )
+
+    context.user_data.pop("channel_post", None)
+
+
+# ---------- لغو ----------
 
 async def cancel(update, context):
     context.user_data.clear()
@@ -256,7 +358,7 @@ def main():
 
     app = Application.builder().token(TOKEN).build()
 
-    conversation = ConversationHandler(
+    add_conversation = ConversationHandler(
         entry_points=[CommandHandler("add", add)],
         states={
             VIDEO: [MessageHandler(
@@ -279,11 +381,24 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel)]
     )
 
+    post_conversation = ConversationHandler(
+        entry_points=[CommandHandler("post", post_start)],
+        states={
+            POST_COVER: [MessageHandler(filters.PHOTO, post_cover)],
+            POST_DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, post_description)],
+            POST_LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, post_link)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)]
+    )
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("id", get_id))
-    app.add_handler(conversation)
+    app.add_handler(add_conversation)
+    app.add_handler(post_conversation)
+
+    app.add_handler(CallbackQueryHandler(approve, pattern="^(approve|reject)$"))
     app.add_handler(CallbackQueryHandler(
-        approve, pattern="^(approve|reject)$"
+        publish_post, pattern="^(publish_post|cancel_post)$"
     ))
 
     app.run_polling()
