@@ -1,0 +1,13 @@
+services:
+  - type: worker
+    name: illusion-beat-manager
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: OWNER_ID
+        sync: false
+      - key: ARCHIVE_CHANNEL_ID
+        sync: false
