@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ILLUSION | Beat Store</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#090909;color:#fff;font-family:Arial,sans-serif}
+header{padding:25px 8%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #292929}
+.logo{font-size:30px;font-weight:900;letter-spacing:4px}
+.logo span{color:#e32636}
+nav a{color:#fff;text-decoration:none;margin-left:22px;font-size:13px}
+.hero{padding:100px 8%;background:linear-gradient(90deg,#080808,#26090d)}
+.hero h1{font-size:clamp(45px,8vw,90px);font-weight:900}
+.hero h1 span{color:#e32636}
+.hero p{color:#aaa;margin:20px 0;font-size:15px}
+.btn{display:inline-block;background:#e32636;color:white;padding:14px 25px;text-decoration:none;font-weight:bold;border:0;cursor:pointer}
+section{padding:60px 8%}
+.heading{font-size:28px;margin-bottom:30px}
+.heading span{color:#e32636}
+.beats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px}
+.card{background:#171717;padding:14px;border:1px solid #292929}
+.cover{height:190px;background:linear-gradient(140deg,#390b12,#111);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;color:#e32636}
+.card h3{margin:15px 0 7px}
+.card p{color:#999;font-size:13px;margin-bottom:12px}
+audio{width:100%;margin:8px 0}
+.contact{background:#151515;text-align:center}
+.contact p{color:#aaa;margin:15px}
+footer{text-align:center;padding:25px;color:#666;border-top:1px solid #222;font-size:12px}
+@media(max-width:600px){header{padding:20px 5%}nav a{margin-left:10px;font-size:11px}.hero{padding:75px 6%}section{padding:45px 6%}}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">ILLU<span>SION</span></div>
+<nav>
+<a href="#home">HOME</a>
+<a href="#beats">BEATS</a>
+<a href="#contact">CONTACT</a>
+</nav>
+</header>
+
+<div class="hero" id="home">
+<h1>FEEL THE <span>SOUND.</span></h1>
+<p>PREMIUM BEATS • UNIQUE VIBES • YOUR MUSIC</p>
+<a href="#beats" class="btn">EXPLORE BEATS</a>
+</div>
+
+<section id="beats">
+<h2 class="heading">LATEST <span>BEATS</span></h2>
+<div class="beats" id="beatList">
+<div class="card">
+<div class="cover">ILLUSION</div>
+<h3>Coming Soon</h3>
+<p>New beats are on the way.</p>
+</div>
+</div>
+</section>
+
+<section class="contact" id="contact">
+<h2 class="heading">LET'S <span>CONNECT</span></h2>
+<p>For purchases and custom orders</p>
+<a class="btn" href="https://t.me/illusionlab1">CONTACT ON TELEGRAM</a>
+</section>
+
+<footer>© 2026 ILLUSION. ALL RIGHTS RESERVED.</footer>
+</body>
+</html>
